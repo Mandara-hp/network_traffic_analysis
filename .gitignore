@@ -1,0 +1,26 @@
+# Never commit captures or malware samples
+*.pcap
+*.pcapng
+*.cap
+*.zip
+*.7z
+*.rar
+*.exe
+*.dll
+*.js
+*.vbs
+*.ps1
+*.hta
+*.lnk
+*.iso
+*.doc
+*.docx
+*.xls
+*.xlsm
+*.bin
+exported/
+exported-objects/
+pcap-work/
+
+# macOS
+.DS_Store
