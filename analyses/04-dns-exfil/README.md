@@ -1,6 +1,6 @@
 # Case 04: DNS tunnelling / exfiltration
 
-> **Status:** 🔄 draft. Findings are done; screenshots and the baseline comparison (case 05) are still to add.
+> **Status:** ✅ complete (baseline comparison added after case 05)
 
 | | |
 |--|--|
@@ -33,7 +33,25 @@ Firewalls usually let DNS out, because everything needs it. An attacker who cont
 | Cover queries (`example.com/.org/.net`) | 14, all A (type 1) |
 | Average query length (all 55) | 52.6 characters |
 
-### 3.2 Per-domain anomaly scores (`tools/dns-anomaly.py`)
+![All 55 queries: long TXT queries with sequence numbers (0000, 0001, …) and random-looking labels under exfil.test, mixed with short A queries for www/mail/cdn.example.*](img/01-exfil-vs-cover.png)
+
+*Even before any scoring, the attack queries stand out: sequence-numbered, random-looking labels, TXT type, and **116-byte packets versus 65–66 bytes** for normal lookups.*
+
+### 3.2 Inside one query: how a name is stored on the wire
+![Frame 1 expanded: one TXT question, no answers; the hex shows length-prefixed labels 04 "0000", 0x32 (50) data label, 05 "exfil", 04 "test", then type 16 TXT, class IN](img/02-inside-query.png)
+
+A DNS name isn't sent with dots. Each **label** is a **length byte followed by its characters**:
+```
+04 | "0000"                   sequence number
+32 | "inhu4rsjircu4vcj…"      50 (0x32) characters of encoded stolen data
+05 | "exfil"
+04 | "test"
+00                            end of name
+00 10 | 00 01                 type 16 = TXT, class 1 = IN
+```
+One length byte allows at most **63 characters per label** (0x3F). That's why exfil tools cut data into chunks, and why a stream of labels **near that maximum** is itself a red flag.
+
+### 3.3 Per-domain anomaly scores (`tools/dns-anomaly.py`)
 ```
 score  queries  unique_subs  avg_len  entropy  parent
     3       41           41     65.3     4.81  exfil.test   <-- suspicious
@@ -49,7 +67,7 @@ score  queries  unique_subs  avg_len  entropy  parent
 
 The tool scores one point per signal (≥ 20 unique subdomains, average length > 40, entropy > 3.5) and flags a score ≥ 2. **Only `exfil.test` scores, and it scores 3/3.**
 
-### 3.3 Impact: rebuilding the stolen data
+### 3.4 Impact: rebuilding the stolen data
 `tools/dns-rebuild.py` sorts the 41 queries by sequence number, joins the chunks and decodes base32:
 ```
 [+] rebuilt from 41 chunks
@@ -62,10 +80,10 @@ employee_id,name,salary
 ```
 In a real incident this is the difference between "*suspicious DNS traffic*" and "*these 50 salary records left the company at 15:14 UTC*", which is exactly what legal and data-protection teams (UK GDPR breach assessment) need to know.
 
-### 3.4 Throughput, and why volume matters
+### 3.5 Throughput, and why volume matters
 About 1.9 KB of data took **41 queries over ~20 s** (~95 bytes/s). DNS exfiltration is **slow**: a 10 MB file would need hundreds of thousands of queries. So, for real data theft, **query volume to a single domain** is itself a strong signal.
 
-### 3.5 Limitations of this simulation (stated honestly)
+### 3.6 Limitations of this simulation (stated honestly)
 - **One-way:** nothing answered the queries. A real tunnel's server replies (often in TXT records) to carry commands back, so responses would be analysed too.
 - **Clean encoding:** real tools vary chunk sizes, add random padding, and may spread data across several domains to keep per-domain counts low.
 - **"Parent domain" = last two labels:** that's simple, and wrong for suffixes like `.co.uk`. A production detector should use the Public Suffix List.
@@ -91,6 +109,7 @@ sleep 2; kill $C
 ```
 
 ## 6. What I learned
+- **Knowing the wire format** (length-prefixed labels, max 63 chars) explains *why* exfil traffic looks the way it does.
 - **Three cheap measurements** (unique subdomains, length and entropy) separate tunnelled data from normal DNS with no signatures at all.
 - **Rebuilding the data proves impact.** It's the step that turns an alert into a breach assessment.
 - **Controlling egress (internal resolvers only)** is the strongest defence, because it forces all DNS through a point that can be logged and inspected.
