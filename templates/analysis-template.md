@@ -30,7 +30,7 @@
 <One subsection per finding: screenshot (`img/`), filter used, and what it means.>
 
 ## 5. Indicators of compromise
-Full list: [`iocs.csv`](iocs.csv). All defanged.
+Full list: `iocs.csv` (in the case folder). All defanged.
 
 | Type | Indicator | Context |
 |------|-----------|---------|
@@ -46,7 +46,7 @@ Full list: [`iocs.csv`](iocs.csv). All defanged.
 - **False positives to expect:** <e.g. software update checks also beacon>
 
 ## 7. Reproduce
-All commands: [`commands.sh`](commands.sh)
+All commands: `commands.sh` (in the case folder)
 
 ## 8. What I learned
 <2–3 bullets: honest, specific.>

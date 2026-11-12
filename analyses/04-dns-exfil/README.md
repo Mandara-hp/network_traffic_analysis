@@ -1,6 +1,6 @@
 # Case 04: DNS tunnelling / exfiltration
 
-> **Status:** ✅ complete (baseline comparison added after case 05)
+> **Status:** ✅ complete
 
 | | |
 |--|--|
