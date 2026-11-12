@@ -20,6 +20,10 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 | 04 | [DNS tunnelling / exfiltration](analyses/04-dns-exfil/) | Self-generated (local simulation) | DNS anomaly scoring (length, entropy, unique subs), rebuilding stolen data | T1048.003, T1071.004 | ✅ |
 | 05 | [Clean baseline + testing my own detections](analyses/05-baseline/) | Self-generated (my own normal traffic) | False-positive testing, tuning a detector, QUIC visibility | n/a | ✅ |
 
+## Detection testing
+
+All 10 Suricata rules from the cases are collected in [`rules/portfolio.rules`](rules/portfolio.rules) and tested by replaying every capture through **Suricata 8.0.8** ([`tools/test-rules.sh`](tools/test-rules.sh)). **Result: 10/10 rules fire on their attack, 0 alerts on the clean baseline.** (The rules were tested on the same captures they were written from, so the baseline and the bugs found matter more than the passes.) Testing found and fixed two real problems: a DNS rule an attacker could evade with a short prefix label, and a rule that raised 273 alerts for one host. Full write-up: [`docs/05-detection-testing.md`](docs/05-detection-testing.md).
+
 ## Start here if you're new to packet analysis
 
 - [`docs/00-fundamentals.md`](docs/00-fundamentals.md): packets, layers, IPs and ports, TCP vs UDP, DNS, HTTP, TLS, in plain English
@@ -27,6 +31,7 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 - [`docs/02-wireshark-basics.md`](docs/02-wireshark-basics.md): a tour of the interface, custom columns, following streams, statistics
 - [`docs/03-filter-cheatsheet.md`](docs/03-filter-cheatsheet.md): the display filters and tshark commands used in this repo
 - [`docs/04-interview-prep.md`](docs/04-interview-prep.md): interview questions this project answers
+- [`docs/05-detection-testing.md`](docs/05-detection-testing.md): testing every rule with Suricata, and the two fixes it found
 - [`METHODOLOGY.md`](METHODOLOGY.md): the repeatable workflow every case follows
 
 ## Repo layout
@@ -34,7 +39,8 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 ```
 docs/        beginner guides (read in order)
 templates/   the write-up template every case uses
-tools/       tshark helper scripts (triage, host ID, IOC extraction, simulations)
+rules/       the 10 Suricata rules written from the cases
+tools/       tshark helper scripts (triage, host ID, IOC extraction, simulations, rule testing)
 analyses/    one folder per case: README write-up, iocs.csv, commands, screenshots
 ```
 
@@ -47,7 +53,7 @@ analyses/    one folder per case: README write-up, iocs.csv, commands, screensho
 
 ## Tools
 
-Wireshark 4.x · tshark · capinfos · nmap · Python 3 (standard library only) · macOS on Apple Silicon
+Wireshark 4.x · tshark · capinfos · nmap · Suricata 8 · Python 3 (standard library only) · macOS on Apple Silicon
 
 ## Licence
 

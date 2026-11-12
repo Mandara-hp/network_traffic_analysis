@@ -97,8 +97,9 @@ Running the same scorer on 10 minutes of my **normal** traffic flagged **two inn
 - **Logic (SIEM / Zeek `dns.log` / resolver logs):** per source host + parent domain over 10 minutes, alert when **unique subdomains > 50 and average query length > 40**, or **TXT queries > 20**, or entropy of the subdomain part > 3.5.
 - **Rule sketch (Suricata, single-query heuristic):**
   ```
-  alert dns $HOME_NET any -> any 53 (msg:"Possible DNS exfiltration - very long query name"; dns.query; pcre:"/^[a-z0-9]{40,}\./i"; threshold:type both, track by_src, count 10, seconds 60; classtype:policy-violation; sid:1000301; rev:1;)
+  alert dns $HOME_NET any -> any 53 (msg:"Possible DNS exfiltration - very long query name"; dns.query; pcre:"/(^|\.)[a-z0-9]{40,}\./i"; threshold:type both, track by_src, count 10, seconds 60; classtype:policy-violation; sid:1000301; rev:2;)
   ```
+  *Tested with Suricata 8: passes. Testing changed this rule to rev 2 (rev 1 anchored the pattern to the first label, so a short `0000.` prefix defeated it); see [docs/05-detection-testing.md](../../docs/05-detection-testing.md).*
 - **Prevention:** allow DNS **only to internal resolvers**, block direct outbound port 53, and log every query at the resolver. That turns the resolver logs into the detection source.
 - **False positives:** CDNs, anti-virus cloud lookups and some telemetry use long random-looking names. Allow-list known parent domains after reviewing the baseline (case 05).
 

@@ -18,3 +18,15 @@
 | How would you handle malware samples safely? | Name resolution off, keep files zipped until needed, isolated folder, never execute, hash and look up. | `docs/01` |
 | IOCs vs behaviour-based detection? | IOCs are easy for attackers to change (a new IP). Behaviours (beaconing, protocol mismatch, scan patterns) last longer. That's why each case ends with a behavioural detection. | "Detection opportunity" sections |
 | What laws apply to scanning? | Computer Misuse Act 1990: only test systems you own or have written permission for. | Case 03 |
+
+## Detection testing
+
+**Did you test your rules?**
+Yes. I replayed all five captures through Suricata 8 with only my 10 rules loaded. Every rule fired on its own attack and nothing fired on my clean baseline. The connect-scan capture was a deliberate negative test: the nmap "window 1024" rule had to stay quiet on it, and did.
+
+**Did anything break?**
+Two things. My DNS rule anchored its pattern to the start of the name, and the exfil queries start with a short sequence number, so it missed everything. An attacker could evade it the same way. I changed it to match a long label anywhere in the name and checked the change on the baseline: 0 false positives. Second, my "HTTP on port 443" rule fired on every packet, 273 alerts for one host, because 9 requests were retransmitted. I added a limit of one alert per host per hour, which brought it down to 5.
+
+**Why did one rule count 264 and another 273 on the same traffic?**
+Rule 001 matches HTTP transactions: 264 real requests, the same as my Wireshark count. Rule 002 had no HTTP content, so it matched packets, and that count included 9 TCP retransmissions.
+
