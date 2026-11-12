@@ -17,7 +17,7 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 | 01 | [Malware infection: find the C2 (NetSupport RAT)](analyses/01-malware-c2/) | malware-traffic-analysis.net | Host ID, protocol mismatch, beaconing | T1219, T1071, T1571 | ✅ |
 | 02 | [Malicious download → PowerShell C2 → TeamViewer + shellcode](analyses/02-phishing-download/) | malware-traffic-analysis.net | Full attack-chain timeline, exporting + decoding scripts, robust beacon stats | T1583.008, T1059.001, T1547.001, T1620 | ✅ |
 | 03 | [Port scan: connect vs SYN](analyses/03-port-scan/) | Self-generated (nmap against my own machine) | TCP flags, every packet accounted for, half-open scans | T1046 | ✅ |
-| 04 | [DNS tunnelling / exfiltration](analyses/04-dns-exfil/) | Self-generated (local simulation) | DNS anomalies, entropy, query length | T1071.004, T1048 | ⏳ |
+| 04 | [DNS tunnelling / exfiltration](analyses/04-dns-exfil/) | Self-generated (local simulation) | DNS anomaly scoring (length, entropy, unique subs), rebuilding stolen data | T1048.003, T1071.004 | 🔄 draft |
 | 05 | [Clean baseline](analyses/05-baseline/) | Self-generated (my own normal traffic) | Knowing what normal looks like | n/a | ⏳ |
 
 ## Start here if you're new to packet analysis
