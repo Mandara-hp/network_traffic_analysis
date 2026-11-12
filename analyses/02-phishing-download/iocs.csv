@@ -1,1 +1,23 @@
 type,indicator,first_seen_utc,context
+domain,google-authenticator.burleson-appliance[.]net,2025-01-22T19:45:34Z,Fake Google Authenticator landing page (Cloudflare 104.21.x.x)
+domain,authenticatoor[.]org,2025-01-22T19:45:35Z,Typosquat serving the malicious download (~2.3 MB over TLS)
+ip,82.221.136[.]26,2025-01-22T19:45:35Z,authenticatoor[.]org host
+domain,appointedtimeagriculture[.]com,2025-01-22T19:45:48Z,Suspicious - contacted mid-chain; role unclear (lower confidence)
+ip,217.70.186[.]109,2025-01-22T19:45:48Z,appointedtimeagriculture[.]com host (lower confidence)
+ip-port,5.252.153[.]241:80,2025-01-22T19:45:56Z,Payload host + PowerShell C2 (588 polls every ~5.2 s)
+url,hxxp://5.252.153[.]241/api/file/get-file/264872,2025-01-22T19:45:56Z,Stage 1 VBScript scriptlet
+url,hxxp://5.252.153[.]241/api/file/get-file/29842.ps1,2025-01-22T19:45:58Z,Stage 2 PowerShell C2 loop
+url,hxxp://5.252.153[.]241/1517096937,2025-01-22T19:45:58Z,C2 poll URI (victim ID = C: volume serial)
+url,hxxp://5.252.153[.]241/api/file/get-file/TeamViewer,2025-01-22T19:47:01Z,TeamViewer EXE
+url,hxxp://5.252.153[.]241/api/file/get-file/pas.ps1,2025-01-22T19:47:05Z,PowerShell C2 loop (persistence copy)
+ip-port,45.125.66[.]32:2917,2025-01-22T19:59:46Z,Post-shellcode C2 - TLS with IP as SNI; Spamhaus DROP
+ip-port,45.125.66[.]252:443,2025-01-22T20:00:14Z,Post-shellcode C2 - TLS with no SNI
+sha256,c74123dbccded43fda61651e102750b041d4c3af6fda88cd6436f9276653e103,2025-01-22T19:45:56Z,264872 (VBScript scriptlet)
+sha256,b8ce40900788ea26b9e4c9af7efab533e8d39ed1370da09b93fcf72a16750ded,2025-01-22T19:45:58Z,29842.ps1
+sha256,a833f27c2bb4cad31344e70386c44b5c221f031d7cd2f2a6b8601919e790161e,2025-01-22T19:47:05Z,pas.ps1
+sha256,904280f20d697d876ab90a1b74c0f22a83b859e8b0519cb411fda26f1642f53e,2025-01-22T19:47:04Z,TeamViewer (EXE)
+sha256,9634ecaf469149379bba80a745f53d823948c41ce4e347860701cbdff6935192,2025-01-22T19:47:05Z,Teamviewer_Resource_fr (DLL)
+sha256,3448da03808f24568e6181011f8521c0713ea6160efd05bff20c43b091ff59f7,2025-01-22T19:47:05Z,TV (DLL - suspected side-load)
+path,C:\ProgramData\huo\TeamViewer.exe,2025-01-22T19:47:05Z,Dropped TeamViewer (from decoded C2 command)
+path,%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\TeamViewer.lnk,2025-01-22T19:47:05Z,Persistence shortcut
+path,C:\ProgramData\jsLeow\skqllz.ps1,2025-01-22T19:59:38Z,Shellcode loader script

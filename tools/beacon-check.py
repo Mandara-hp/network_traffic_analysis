@@ -9,6 +9,12 @@ connections. Lots of connections with very similar gaps = likely beacon.
   CV close to 0  -> clockwork regular (suspicious)
   CV around 1+   -> irregular (human-like)
 
+Robust check: when the C2 sends work, the implant pauses longer, which
+stretches a few gaps and inflates the plain CV (case 02: 5 s loop, CV 0.67).
+So we also report the MEDIAN gap and a robust CV = MAD / median
+(MAD = median absolute deviation), which ignores those occasional long gaps.
+A flow is flagged if EITHER cv or robust_cv is low.
+
 Usage:
   tshark -n -r cap.pcap -Y "tcp.flags.syn==1 && tcp.flags.ack==0" \
       -T fields -e frame.time_epoch -e ip.src -e ip.dst -e tcp.dstport \
@@ -48,13 +54,16 @@ def main() -> None:
         if mean == 0:
             continue
         cv = statistics.pstdev(gaps) / mean
-        rows.append((cv, src, dst, port, len(times), mean))
+        med = statistics.median(gaps)
+        mad = statistics.median([abs(g - med) for g in gaps])
+        rcv = mad / med if med else 0.0
+        rows.append((min(cv, rcv), src, dst, port, len(times), mean, med, cv, rcv))
 
     rows.sort()
-    print(f"{'flag':<8}{'src':<16}{'dst:port':<24}{'conns':>6}{'mean_gap_s':>12}{'cv':>7}")
-    for cv, src, dst, port, n, mean in rows:
-        flag = "BEACON" if cv <= a.max_cv else ""
-        print(f"{flag:<8}{src:<16}{dst + ':' + port:<24}{n:>6}{mean:>12.1f}{cv:>7.2f}")
+    print(f"{'flag':<8}{'src':<16}{'dst:port':<24}{'conns':>6}{'mean_s':>8}{'median_s':>10}{'cv':>6}{'robust_cv':>11}")
+    for best, src, dst, port, n, mean, med, cv, rcv in rows:
+        flag = "BEACON" if best <= a.max_cv else ""
+        print(f"{flag:<8}{src:<16}{dst + ':' + port:<24}{n:>6}{mean:>8.1f}{med:>10.1f}{cv:>6.2f}{rcv:>11.2f}")
     if not rows:
         print(f"(no flow with >= {a.min_conns} connections)")
 
