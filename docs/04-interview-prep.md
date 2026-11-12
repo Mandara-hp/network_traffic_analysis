@@ -11,6 +11,8 @@
 | SYN scan vs connect scan? | Connect completes the handshake (no root needed). SYN sends RST instead of the final ACK ("half-open"). | Case 03 |
 | How does DNS tunnelling work, and how do you catch it? | Data encoded in subdomains. Catch it with length, unique subdomains, entropy, TXT volume, and only allowing DNS through internal resolvers. | Case 04 |
 | How do you avoid false positives? | Know the baseline, confirm with a second source, allow-list known-good. | Case 05 |
+| How would you test a new detection before deploying it? | Run it against clean baseline traffic. Mine flagged 2 innocent domains; I found the cause (no volume requirement), tuned it, and re-tested on both attack and clean data. | Cases 04 + 05 |
+| What's QUIC and why does it matter to a SOC? | HTTP/3 over UDP 443. Over half my normal bytes were QUIC, so TCP/TLS-only monitoring misses most web traffic. Mid-stream QUIC can't even be labelled without the handshake. | Case 05 |
 | What's an IOC, and why defang? | Evidence of compromise (IP, domain, URL, hash). Defanging stops accidental clicks and auto-linking. | Every case |
 | Why hash a file instead of opening it? | Safe, unique, searchable on VirusTotal without running anything. | Case 02 |
 | How would you handle malware samples safely? | Name resolution off, keep files zipped until needed, isolated folder, never execute, hash and look up. | `docs/01` |

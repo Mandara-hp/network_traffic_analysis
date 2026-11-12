@@ -89,6 +89,9 @@ About 1.9 KB of data took **41 queries over ~20 s** (~95 bytes/s). DNS exfiltrat
 - **"Parent domain" = last two labels:** that's simple, and wrong for suffixes like `.co.uk`. A production detector should use the Public Suffix List.
 - **The baseline (case 05)** shows how my real, normal DNS scores on the same tool. That's the check for false positives.
 
+### 3.7 Baseline comparison and tuning (from case 05)
+Running the same scorer on 10 minutes of my **normal** traffic flagged **two innocent domains**: `_tcp.local` (mDNS device discovery) and `azure.com` (random-looking cloud hostnames). Both matched **length + entropy** but had only 2–3 unique subdomains, against **41** here. I tuned the scorer to **skip `.local`** and to require **volume (≥ 20 unique subdomains) plus one other signal**. Re-tested: `exfil.test` is still flagged, and the baseline flags nothing. Details: [case 05](../05-baseline/).
+
 ## 4. Detection opportunity
 - **ATT&CK:** T1048.003 Exfiltration Over Unencrypted Non-C2 Protocol · T1071.004 Application Layer Protocol: DNS · T1132.001 Standard Encoding (base32)
 - **Logic (SIEM / Zeek `dns.log` / resolver logs):** per source host + parent domain over 10 minutes, alert when **unique subdomains > 50 and average query length > 40**, or **TXT queries > 20**, or entropy of the subdomain part > 3.5.
