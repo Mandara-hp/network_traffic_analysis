@@ -1,6 +1,6 @@
 type,indicator,first_seen_utc,context
-domain,google-authenticator.burleson-appliance[.]net,2025-01-22T19:45:34Z,Fake Google Authenticator landing page (Cloudflare 104.21.x.x)
-domain,authenticatoor[.]org,2025-01-22T19:45:35Z,Typosquat serving the malicious download (~2.3 MB over TLS)
+domain,google-authenticator.burleson-appliance[.]net,2025-01-22T19:45:34Z,Malvertising landing/redirect domain (Cloudflare 104.21.x.x)
+domain,authenticatoor[.]org,2025-01-22T19:45:35Z,Fake software site (typosquat) serving application_setup.js
 ip,82.221.136[.]26,2025-01-22T19:45:35Z,authenticatoor[.]org host
 domain,appointedtimeagriculture[.]com,2025-01-22T19:45:48Z,Suspicious - contacted mid-chain; role unclear (lower confidence)
 ip,217.70.186[.]109,2025-01-22T19:45:48Z,appointedtimeagriculture[.]com host (lower confidence)
@@ -21,3 +21,6 @@ sha256,3448da03808f24568e6181011f8521c0713ea6160efd05bff20c43b091ff59f7,2025-01-
 path,C:\ProgramData\huo\TeamViewer.exe,2025-01-22T19:47:05Z,Dropped TeamViewer (from decoded C2 command)
 path,%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\TeamViewer.lnk,2025-01-22T19:47:05Z,Persistence shortcut
 path,C:\ProgramData\jsLeow\skqllz.ps1,2025-01-22T19:59:38Z,Shellcode loader script
+domain,microsoft.teams-live[.]com,,Related fake Teams site on same IP 82.221.136[.]26 (Unit 42 2025-01-22)
+sha256,4bed34b1cd5663a5a857b3bbf81cc5413c61cb561e9a90067b57da08b01ae70b,2025-01-22T19:45:54Z,application_setup.js initial download (Unit 42; not in pcap - HTTPS)
+sha256,fd045fcede68ce2fda2531a9dd28f407aab0f29b3dd3c86e017172abee93386c,2025-01-22T19:59:38Z,skqllz.ps1 shellcode loader as written to disk (Unit 42)
