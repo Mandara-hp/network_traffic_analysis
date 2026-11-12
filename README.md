@@ -14,7 +14,7 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 
 | # | Case | Source | Key skill shown | ATT&CK | Status |
 |---|------|--------|-----------------|--------|--------|
-| 01 | [Malware infection: find the C2 (NetSupport RAT)](analyses/01-malware-c2/) | malware-traffic-analysis.net | Host ID, protocol mismatch, beaconing | T1219, T1071, T1571 | 🔄 draft |
+| 01 | [Malware infection: find the C2 (NetSupport RAT)](analyses/01-malware-c2/) | malware-traffic-analysis.net | Host ID, protocol mismatch, beaconing | T1219, T1071, T1571 | ✅ |
 | 02 | [Malicious download (fake software site)](analyses/02-phishing-download/) | malware-traffic-analysis.net | DNS/SNI timeline, exporting files, hashing | T1189, T1204 | ⏳ |
 | 03 | [Port scan](analyses/03-port-scan/) | Self-generated (nmap against my own machine) | TCP flags, scan patterns | T1046 | ⏳ |
 | 04 | [DNS tunnelling / exfiltration](analyses/04-dns-exfil/) | Self-generated (local simulation) | DNS anomalies, entropy, query length | T1071.004, T1048 | ⏳ |
