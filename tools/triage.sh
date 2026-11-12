@@ -2,7 +2,7 @@
 # triage.sh: first-look summary of a capture (methodology steps 1–2).
 # Usage: tools/triage.sh capture.pcap > triage.txt
 # Works with macOS's default bash 3.2. Needs tshark + capinfos (they come with Wireshark).
-set -euo pipefail
+set -eu   # no pipefail: "| head" closes the pipe early and would kill the script
 
 F="${1:?usage: triage.sh <capture.pcap>}"
 # -n = no name resolution: never do DNS lookups for attacker IPs

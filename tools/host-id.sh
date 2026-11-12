@@ -2,7 +2,7 @@
 # host-id.sh: identify hosts on a Windows LAN (methodology step 3).
 # Pulls IP, MAC, hostname and user account from DHCP, NBNS and Kerberos.
 # Usage: tools/host-id.sh capture.pcap
-set -euo pipefail
+set -eu   # no pipefail: "| head" closes the pipe early and would kill the script
 
 F="${1:?usage: host-id.sh <capture.pcap>}"
 t() { tshark -n -r "$F" "$@"; }

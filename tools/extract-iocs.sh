@@ -3,7 +3,7 @@
 # Output is CANDIDATES. You still have to confirm each one (threat intel, context)
 # and delete the benign ones (Microsoft, Google, CDNs...) before publishing.
 # Usage: tools/extract-iocs.sh capture.pcap <victim-ip>
-set -euo pipefail
+set -eu   # no pipefail: "| head" closes the pipe early and would kill the script
 
 F="${1:?usage: extract-iocs.sh <capture.pcap> <victim-ip>}"
 V="${2:?victim ip required}"
