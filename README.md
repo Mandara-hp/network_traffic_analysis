@@ -9,6 +9,8 @@ Five packet-capture (PCAP) investigations done with **Wireshark** and **tshark**
 5. **How would we detect this next time?** (detection idea + MITRE ATT&CK mapping)
 
 > Companion project: [SOC-lab](https://github.com/Mandara-hp/SOC-lab), where I build the SIEM detections that the "Detection opportunity" sections here feed into.
+>
+> Also: [Splunk Incident Investigation](https://github.com/Mandara-hp/splunk-bots-investigation), a web server compromise traced end to end with SPL in Splunk's BOTS v1 dataset.
 
 ## Cases
 
